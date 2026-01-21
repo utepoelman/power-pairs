@@ -441,7 +441,8 @@
         isProcessing: false,
         totalPairs: 12,
         startTime: null,
-        endTime: null
+        endTime: null,
+        activeSkills: [] // Stores skills for certificate
     };
 
     let selectedCards = [];
@@ -604,7 +605,7 @@
     }
 
     function backToSkills() {
-        document.getElementById('nugget-speech').innerText = "Hi! Let's power up your math skills!";
+        document.getElementById('nugget-speech').innerText = "Hi! Let's power up your maths skills!";
         document.getElementById('phase-mode').classList.add('hidden');
         document.getElementById('phase-skills').classList.remove('hidden');
     }
@@ -633,6 +634,9 @@
 
     // --- Game Engine ---
     function startGame() {
+        // STORE SELECTED SKILLS
+        gameState.activeSkills = getSelectedSkills();
+
         gameState.p1Name = document.getElementById('input-p1-name').value.trim() || "Player 1";
         gameState.p2Name = document.getElementById('input-p2-name').value.trim() || "Player 2";
         gameState.scores = { p1: 0, p2: 0 };
@@ -848,7 +852,8 @@
         document.getElementById('cert-details').innerText = detailText;
         document.getElementById('cert-date').innerText = new Date().toLocaleDateString();
 
-        const skillsList = getSelectedSkills().map(s => getSkillDisplayName(s)).join(', ');
+        // Use cached skills list
+        const skillsList = gameState.activeSkills.map(s => getSkillDisplayName(s)).join(', ');
         document.getElementById('cert-skills').innerText = `Skills: ${skillsList}`;
         
         document.getElementById('modal-overlay').classList.add('hidden');
