@@ -223,6 +223,18 @@
         .denominator { padding: 0 2px; display: block; width: 100%; text-align: center; }
         .eq-sign { margin: 0 5px; }
 
+        /* Root Typesetting CSS */
+        .root-container {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 2px;
+        }
+        .radicand {
+            border-top: 2px solid currentColor;
+            padding-top: 1px;
+            margin-left: -1px; /* Connect to symbol */
+        }
+
         /* --- Modal & Certificate --- */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -319,6 +331,14 @@
                     <label>
                         <input type="checkbox" value="cubes" checked> 
                         Cube Numbers (0&sup3; to 10&sup3;)
+                    </label>
+                    <label>
+                        <input type="checkbox" value="sqrt" checked> 
+                        Square Roots (to &radic;400)
+                    </label>
+                    <label>
+                        <input type="checkbox" value="cbrt" checked> 
+                        Cube Roots (to &#8731;1728)
                     </label>
                     <label>
                         <input type="checkbox" value="pow10" checked> 
@@ -458,6 +478,13 @@
         return `${base}<sup>${exp}</sup>`;
     }
 
+    // HTML for Roots with proper typesetting
+    function fmtRoot(n, type) {
+        // type 2 = square, 3 = cube
+        const prefix = type === 3 ? '<sup>3</sup>' : '';
+        return `<div class="root-container">${prefix}&radic;<span class="radicand">${n}</span></div>`;
+    }
+
     // Fraction/Decimal formatter for negative powers
     function fmtNeg(fracTop, fracBot, decVal) {
         return `
@@ -468,6 +495,14 @@
             <span class="eq-sign">=</span>
             <span>${decVal}</span>
         `;
+    }
+
+    // Truncate decimals without rounding (e.g. 1.732... for sqrt(3))
+    function truncateDecimal(val, places) {
+        const s = val.toString();
+        const dot = s.indexOf('.');
+        if (dot === -1) return s;
+        return s.substring(0, dot + places + 1) + '...';
     }
 
     function toggleAllSkills(state) {
@@ -483,6 +518,8 @@
         const map = {
             'squares': 'Square Numbers',
             'cubes': 'Cube Numbers',
+            'sqrt': 'Square Roots',
+            'cbrt': 'Cube Roots',
             'pow10': 'Powers of 10',
             'pow2': 'Powers of 2',
             'common': 'Common Powers'
@@ -513,9 +550,6 @@
         if (e >= 0) {
             a = fmtNum(val);
         } else {
-            // Negative: Fraction + Decimal
-            // 10^-1 = 1/10 = 0.1
-            // Use clean string creation to avoid scientific notation
             const decStr = val.toFixed(Math.abs(e)); 
             a = fmtNeg(1, Math.pow(10, Math.abs(e)), decStr);
         }
@@ -531,40 +565,50 @@
         if (e >= 0) {
             a = fmtNum(val);
         } else {
-            // -1 -> 0.5, -2 -> 0.25, -3 -> 0.125
             const decStr = val.toString();
             a = fmtNeg(1, Math.pow(2, Math.abs(e)), decStr);
         }
         return { q: q, a: a, val: val };
     }
 
-    // 5. Common Powers: 2, 3, 4, 5, 6 (various ranges)
+    // 5. Common Powers: 2, 3, 4, 5, 6
     function genCommon() {
         const bases = [
-            { b: 2, max: 10 },
-            { b: 3, max: 6 },
-            { b: 4, max: 5 },
-            { b: 5, max: 4 },
-            { b: 6, max: 3 }
+            { b: 2, max: 10 }, { b: 3, max: 6 },
+            { b: 4, max: 5 }, { b: 5, max: 4 }, { b: 6, max: 3 }
         ];
         const selection = bases[getRandomInt(0, bases.length - 1)];
         const e = getRandomInt(1, selection.max);
         const val = Math.pow(selection.b, e);
-        
         return { q: fmtPow(selection.b, e), a: fmtNum(val), val: val };
+    }
+
+    // 6. Square Roots (Only Perfect Squares 0 to 400)
+    // Modified: Removed irrational/decimal logic
+    function genSqrt() {
+        // Select root from 0 to 20 (since 20*20 = 400)
+        const root = getRandomInt(0, 20); 
+        const n = root * root;
+        return { q: fmtRoot(n, 2), a: root.toString(), val: root };
+    }
+
+    // 7. Cube Roots (Only Perfect Cubes 0 to 1728)
+    // Modified: Removed irrational/decimal logic, extended range to 12
+    function genCbrt() {
+        // Select root from 0 to 12 (since 12*12*12 = 1728)
+        const root = getRandomInt(0, 12);
+        const n = root * root * root;
+        return { q: fmtRoot(n, 3), a: root.toString(), val: root };
     }
 
     // --- Core Logic ---
     function generateDeckData() {
         const skills = getSelectedSkills();
         let deck = [];
-        // CRITICAL: Used numerical results to strictly prevent duplicates
-        // e.g. 0^2 (0) and 0^3 (0) cannot both exist.
-        // e.g. 2^4 (16) and 4^2 (16) cannot both exist.
         let usedValues = new Set(); 
         let safetyCounter = 0;
         
-        while(deck.length < 24 && safetyCounter < 3000) {
+        while(deck.length < 24 && safetyCounter < 4000) {
             safetyCounter++;
             const skill = skills[getRandomInt(0, skills.length-1)];
             let data = null;
@@ -574,10 +618,11 @@
             else if (skill === 'pow10') data = genPow10();
             else if (skill === 'pow2') data = genPow2();
             else if (skill === 'common') data = genCommon();
+            else if (skill === 'sqrt') data = genSqrt();
+            else if (skill === 'cbrt') data = genCbrt();
 
             if (data) {
-                // Duplicate Check on Value
-                // Floating point precision handling for 10^-x
+                // Strict duplicate check on numerical value
                 const checkVal = parseFloat(data.val.toPrecision(10));
                 
                 if (!usedValues.has(checkVal)) {
@@ -665,7 +710,7 @@
         }
 
         const deckData = generateDeckData().sort(() => 0.5 - Math.random());
-        // Adaptive win condition in case of small deck
+        // Adaptive win condition
         gameState.totalPairs = deckData.length / 2;
 
         const board = document.getElementById('board');
