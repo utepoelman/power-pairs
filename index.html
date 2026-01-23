@@ -356,6 +356,10 @@
                         <input type="checkbox" value="negBase" checked> 
                         Negative Bases (+/-(-x)<sup>n</sup>)
                     </label>
+                    <label>
+                        <input type="checkbox" value="negExpFrac" checked> 
+                        Negative Exp. &harr; Fractions (e.g. 2<sup>-3</sup> = 1/8)
+                    </label>
                 </div>
 
                 <button class="btn" onclick="goToModeSelection()">Next</button>
@@ -489,7 +493,7 @@
         return `<div class="root-container">${prefix}&radic;<span class="radicand">${n}</span></div>`;
     }
 
-    // Fraction/Decimal formatter for negative powers
+    // Fraction/Decimal formatter for negative powers (Used for powers of 10 and 2)
     function fmtNeg(fracTop, fracBot, decVal) {
         return `
             <div class="fraction">
@@ -498,6 +502,16 @@
             </div>
             <span class="eq-sign">=</span>
             <span>${decVal}</span>
+        `;
+    }
+    
+    // Simple fraction for the new skill
+    function fmtSimpleFraction(numerator, denominator) {
+        return `
+            <div class="fraction">
+                <span class="numerator">${numerator}</span>
+                <span class="denominator">${fmtNum(denominator)}</span>
+            </div>
         `;
     }
 
@@ -527,7 +541,8 @@
             'pow10': 'Powers of 10',
             'pow2': 'Powers of 2',
             'common': 'Common Powers',
-            'negBase': 'Negative Bases'
+            'negBase': 'Negative Bases',
+            'negExpFrac': 'Negative Exp. & Fractions'
         };
         return map[code] || code;
     }
@@ -625,6 +640,27 @@
         return { q: q, a: a, val: val };
     }
 
+    // 9. Negative Exponents -> Unit Fractions
+    // Bases: 2, 3, 4, 5, 6, 8, 10
+    // Exponents: -1, -2, -3
+    function genNegExpFrac() {
+        const bases = [2, 3, 4, 5, 6, 8, 10];
+        const exponents = [-1, -2, -3];
+        
+        const base = bases[getRandomInt(0, bases.length - 1)];
+        const exp = exponents[getRandomInt(0, exponents.length - 1)];
+        
+        const denominator = Math.pow(base, Math.abs(exp));
+        const val = Math.pow(base, exp); // This creates a small decimal float
+
+        // Question: 2^-3
+        const q = fmtPow(base, exp);
+        // Answer: 1/8
+        const a = fmtSimpleFraction(1, denominator);
+
+        return { q: q, a: a, val: val };
+    }
+
     // --- Core Logic ---
     function generateDeckData() {
         const skills = getSelectedSkills();
@@ -645,6 +681,7 @@
             else if (skill === 'sqrt') data = genSqrt();
             else if (skill === 'cbrt') data = genCbrt();
             else if (skill === 'negBase') data = genNegBase();
+            else if (skill === 'negExpFrac') data = genNegExpFrac();
 
             if (data) {
                 // Strict duplicate check on numerical value
