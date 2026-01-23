@@ -334,11 +334,11 @@
                     </label>
                     <label>
                         <input type="checkbox" value="sqrt" checked> 
-                        Square Roots (to &radic;400)
+                        Square Roots (&radic;0 to &radic;400)
                     </label>
                     <label>
                         <input type="checkbox" value="cbrt" checked> 
-                        Cube Roots (to &#8731;1728)
+                        Cube Roots (&#8731;0 to &#8731;1728)
                     </label>
                     <label>
                         <input type="checkbox" value="pow10" checked> 
@@ -351,6 +351,10 @@
                     <label>
                         <input type="checkbox" value="common" checked> 
                         Common Powers (3<sup>x</sup>, 4<sup>x</sup>, 5<sup>x</sup>, 6<sup>x</sup>)
+                    </label>
+                    <label>
+                        <input type="checkbox" value="negBase" checked> 
+                        Negative Bases (+/-(-x)<sup>n</sup>)
                     </label>
                 </div>
 
@@ -522,7 +526,8 @@
             'cbrt': 'Cube Roots',
             'pow10': 'Powers of 10',
             'pow2': 'Powers of 2',
-            'common': 'Common Powers'
+            'common': 'Common Powers',
+            'negBase': 'Negative Bases'
         };
         return map[code] || code;
     }
@@ -584,7 +589,6 @@
     }
 
     // 6. Square Roots (Only Perfect Squares 0 to 400)
-    // Modified: Removed irrational/decimal logic
     function genSqrt() {
         // Select root from 0 to 20 (since 20*20 = 400)
         const root = getRandomInt(0, 20); 
@@ -593,12 +597,32 @@
     }
 
     // 7. Cube Roots (Only Perfect Cubes 0 to 1728)
-    // Modified: Removed irrational/decimal logic, extended range to 12
     function genCbrt() {
         // Select root from 0 to 12 (since 12*12*12 = 1728)
         const root = getRandomInt(0, 12);
         const n = root * root * root;
         return { q: fmtRoot(n, 3), a: root.toString(), val: root };
+    }
+
+    // 8. Negative Bases: +/-(-x)^n where x=1..6, n=0..4
+    function genNegBase() {
+        const x = getRandomInt(1, 6);
+        const base = -x;
+        const exp = getRandomInt(0, 4);
+        
+        // Randomly decide if there is a negative sign outside
+        // 0 = no sign (positive), 1 = negative sign
+        const hasNegSign = getRandomInt(0, 1) === 1;
+        const signMultiplier = hasNegSign ? -1 : 1;
+        
+        const val = signMultiplier * Math.pow(base, exp);
+        
+        // Format: (-3)^2 or -(-3)^2
+        const signStr = hasNegSign ? '-' : '';
+        const q = `${signStr}(${base})<sup>${exp}</sup>`;
+        const a = fmtNum(val);
+        
+        return { q: q, a: a, val: val };
     }
 
     // --- Core Logic ---
@@ -620,6 +644,7 @@
             else if (skill === 'common') data = genCommon();
             else if (skill === 'sqrt') data = genSqrt();
             else if (skill === 'cbrt') data = genCbrt();
+            else if (skill === 'negBase') data = genNegBase();
 
             if (data) {
                 // Strict duplicate check on numerical value
